@@ -10,16 +10,26 @@
 		"Other"
 	],
 	"activationEvents": [
+		"onStartupFinished",
         "onCommand:quick-ref-def.helloWorld"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "quick-ref-def.helloWorld",
-				"title": "Hello World"
+				"command": "quick-ref-def.showReferedFunc",
+				"title": "quick-ref-def: show referenced function"
 			}
-		]
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"command": "quick-ref-def.showReferedFunc",
+					"when": "editorHasSelection",
+                    "group": "navigation"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",
