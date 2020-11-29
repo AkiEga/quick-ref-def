@@ -1,40 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+import * as path from 'path';
 import * as vscode from 'vscode';
-
-async function getReferedFunc(selection: vscode.Selection): Promise<vscode.Location[]> {
-	let uri = vscode.window.activeTextEditor?.document.uri;
-	let refLoc: vscode.Location[] = [];
-
-	if(uri){
-		refLoc = <vscode.Location[]>await vscode.commands.executeCommand("vscode.executeReferenceProvider", uri, selection.start);
-	}
-	
-	return new Promise((resolve) => {
-		resolve(refLoc);
-	});
-}
-
-async function getReferedFuncRecursive(selection: vscode.Selection, uri:vscode.Uri): 
-	Promise<vscode.Location[] >
-{
-	let refLoc: vscode.Location[] = [];
-
-	refLoc = <vscode.Location[]>await vscode.commands.executeCommand("vscode.executeReferenceProvider", uri, selection.start);
-	
-	let newRefLoc: vscode.Location[] = [];
-	refLoc.forEach(async (ref)=>{
-		let refSel:vscode.Selection =new vscode.Selection(ref.range.start, ref.range.end);
-		let refUri:vscode.Uri = ref.uri;
-		newRefLoc = await getReferedFuncRecursive(refSel,refUri);
-	});
-
-	refLoc.concat(newRefLoc);
-	
-	return new Promise((resolve) => {
-		resolve(refLoc);
-	});
-}
+import { getReferedFuncRecursive } from './getReferedFunc';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -53,8 +21,24 @@ export function activate(context: vscode.ExtensionContext) {
 		if(activeTextEditor){
 			let selection:vscode.Selection = activeTextEditor.selection;
 			getReferedFuncRecursive(selection,activeTextEditor.document.uri).then
-			((refs:vscode.Location[])=>{
-				console.log(refs);
+			((refs:vscode.Location[]|void)=>{
+				if(refs){
+					refs.forEach((loc:vscode.Location)=>{
+						let uri = loc.uri;
+						let doc: vscode.TextDocument | undefined 
+							= vscode.workspace.textDocuments.find((doc : vscode.TextDocument) => {
+								return doc.uri.path.toLocaleLowerCase() === loc.uri.path.toLocaleLowerCase();
+						});
+						if(doc){
+							let txt = doc.getText(loc.range);
+							let line = loc.range.start.line+1;
+							let column = loc.range.start.character;
+							console.log(`loc: ${uri.fsPath.toString()}:${line}:${column}`);
+							console.log(`func: ${txt}`);
+						}
+					});
+				}
+				
 			});
 		}
 		// Display a message box to the user
